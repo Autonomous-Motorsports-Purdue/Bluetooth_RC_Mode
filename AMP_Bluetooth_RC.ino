@@ -55,9 +55,26 @@ int throttle_ctrl = 0;  //init to no throttle
 
 int forwardMode = 1;
 
+#define FS1_pin 30
+#define FWD_pin 31
+#define REV_pin 11
+
+#define BRAKE_PIN1 7
+#define BRAKE_PIN2 11
+
+#define NUM_DIGITAL_PINS 5
+
+int digitalPins[NUM_DIGITAL_PINS] = {FS1_pin, FWD_pin, REV_pin, BRAKE_PIN1, BRAKE_PIN2};
+
 void setup(void)
 {
   pinMode(THROTTLE_PIN, OUTPUT);
+
+  //init digital pins
+  for (int i = 0; i < NUM_DIGITAL_PINS; i++) {
+    pinMode(digitalPins[i], OUTPUT);
+    digitalWrite(digitalPins[i], HIGH); //default all signals to high (active low)
+  }
   
   Serial.begin(115200);
   while ( !Serial ) delay(10);   // for nrf52840 with native usb
@@ -81,6 +98,9 @@ void setup(void)
   Serial.println(F("Please use Adafruit Bluefruit LE app to connect in Controller mode"));
   Serial.println(F("Then activate/use the sensors, color picker, game controller, etc!"));
   Serial.println();  
+
+
+  enableKart();
 }
 
 void startAdv(void)
@@ -142,6 +162,7 @@ void loop(void)
         {
           throttle_ctrl = 0;
           steering_ctrl = STEERING_CONTROL_MAX - STEERING_CONTROL_MIN;
+          forward();
           
           break;
         }
@@ -187,10 +208,42 @@ void loop(void)
         }
         case 4: //forward reverse toggle
         {
-          forwardMode = !forwardMode;
+          forwardMode = !forwardMode;  //togle mode
+          if (forwardMode) {
+            forward();
+          } else {
+            reverse();
+          }
           break;
         }
       }
     }
   }
+}
+
+inline void brakeOff() {
+  digitalWrite(BRAKE_PIN1, LOW);
+  digitalWrite(BRAKE_PIN2, HIGH);
+}
+
+inline void brakeOn() {
+  digitalWrite(BRAKE_PIN1, HIGH);
+  digitalWrite(BRAKE_PIN2, LOW);
+}
+
+inline void forward() {
+  digitalWrite(REV_pin, HIGH);
+  digitalWrite(FWD_pin, LOW);
+}
+
+inline void reverse() {
+  digitalWrite(FWD_pin, HIGH);
+  digitalWrite(REV_pin, LOW);
+}
+
+void enableKart() {
+  digitalWrite(FS1_pin, LOW);
+  digitalWrite(FWD_pin, LOW);
+  forward();
+  brakeOff();
 }
